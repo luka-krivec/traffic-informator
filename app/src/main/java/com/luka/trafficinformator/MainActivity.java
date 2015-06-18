@@ -1,21 +1,39 @@
 package com.luka.trafficinformator;
 
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends FragmentActivity {
+import java.util.concurrent.ExecutionException;
+
+import asynctasks.DirectionsAPI;
+
+public class MainActivity extends FragmentActivity implements View.OnClickListener {
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
+    private EditText editFromLocation;
+    private EditText editToLocation;
+    private Button btnSearchEvents;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        editFromLocation = (EditText) findViewById(R.id.editFromLocation);
+        editToLocation = (EditText) findViewById(R.id.editToLocation);
+        btnSearchEvents = (Button) findViewById(R.id.btnSearchEvents);
+        btnSearchEvents.setOnClickListener(this);
+
         setUpMapIfNeeded();
     }
 
@@ -61,5 +79,25 @@ public class MainActivity extends FragmentActivity {
      */
     private void setUpMap() {
         mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+    }
+
+    @Override
+    public void onClick(View v) {
+        if(v.getId() == R.id.btnSearchEvents) {
+            String from = editFromLocation.getText().toString();
+            String to = editToLocation.getText().toString();
+
+            if(from.length() == 0 || to.length() == 0) {
+                Toast.makeText(this, R.string.warning_input_from_and_to, Toast.LENGTH_SHORT).show();
+            } else {
+                try {
+                    Log.d("DirectionsAPI", new DirectionsAPI().execute(from, to).get());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
