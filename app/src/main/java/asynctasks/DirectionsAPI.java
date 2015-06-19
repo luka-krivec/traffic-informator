@@ -1,8 +1,12 @@
 package asynctasks;
 
 
+import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
+
+import com.luka.trafficinformator.MainActivity;
+import com.luka.trafficinformator.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,10 +26,16 @@ public class DirectionsAPI extends AsyncTask<String, String, String> {
 
     private static final int TIMEOUT = 5000;  // Timeout for waiting API call
     private static final String API_KEY = "AIzaSyDKAUuawMOLkQ0wFkkFTU-OuTyfmNK6w_M";
+    private Context context;
+
+    public DirectionsAPI(Context context) {
+        this.context = context;
+    }
 
     @Override
     protected String doInBackground(String... params) {
         String res = "";
+        String error = context.getResources().getString(R.string.error_retreiving_data);
         String origin = params[0];
         String destination = params[1];
 
@@ -53,31 +63,19 @@ public class DirectionsAPI extends AsyncTask<String, String, String> {
 
             switch (status) {
                 case 200:
-                    JSONObject json = new JSONObject(IOUtils.getString(c.getInputStream()));
-                    res = json.toString();
                 case 201:
-                    BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        sb.append(line+"\n");
-                    }
-                    br.close();
-                    return sb.toString();
+                    return IOUtils.getString(c.getInputStream());
             }
-
-        } catch (MalformedURLException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        } catch (JSONException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+            res = error;
         } finally {
             if (c != null) {
                 try {
                     c.disconnect();
                 } catch (Exception ex) {
                     Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+                    res = error;
                 }
             }
         }

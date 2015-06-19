@@ -8,12 +8,23 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import asynctasks.DirectionsAPI;
 
@@ -72,13 +83,21 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     }
 
     /**
-     * This is where we can add markers or lines, add listeners or move the camera. In this case, we
-     * just add a marker near Africa.
+     * Zoom to Slovenia
      * <p/>
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        moveCamera(new LatLng(46.059231, 14.826602), 7f);
+    }
+
+    private void moveCamera(LatLng point, float zoom) {
+        CameraPosition startCameraPosition = new CameraPosition.Builder()
+                .target(point)
+                .zoom(zoom)
+                .build();
+
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(startCameraPosition));
     }
 
     @Override
@@ -86,18 +105,80 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         if(v.getId() == R.id.btnSearchEvents) {
             String from = editFromLocation.getText().toString();
             String to = editToLocation.getText().toString();
+            String warning = getResources().getString(R.string.warning_check_input_data);
+            String error = getResources().getString(R.string.error_retreiving_data);
+
+            PolylineOptions optimalRoute = new PolylineOptions();
 
             if(from.length() == 0 || to.length() == 0) {
                 Toast.makeText(this, R.string.warning_input_from_and_to, Toast.LENGTH_SHORT).show();
             } else {
                 try {
-                    Log.d("DirectionsAPI", new DirectionsAPI().execute(from, to).get());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
+                    String apiResponese = new DirectionsAPI(this).execute(from, to).get();
+                    Log.d("DirectionsAPI", apiResponese);
+
+                    JSONObject jsonDirections = new JSONObject(apiResponese);
+                    String status = jsonDirections.getString("status");
+                    Log.d("DirectionsAPI status: ", status);
+
+                    if(status.equals("OK")) {
+                        JSONArray routes = jsonDirections.getJSONArray("routes");
+
+                        if(routes.length() == 0) {
+                            Toast.makeText(this, warning, Toast.LENGTH_LONG).show();
+                        } else {
+                            JSONObject route = routes.getJSONObject(0);
+                            String polyLine = route.getJSONObject("overview_polyline").getString("points");
+                            ArrayList<LatLng> points = decodePoly(polyLine);
+                            optimalRoute.addAll(points);
+                            mMap.addPolyline(optimalRoute);
+                            moveCamera(points.get(0), 10f);
+                        }
+                    } else if(status.equals("NOT_FOUND")) {
+                        Toast.makeText(this, warning, Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                    }
+                } catch (InterruptedException  | ExecutionException | JSONException e) {
+                    Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
+                    Toast.makeText(this, error, Toast.LENGTH_LONG).show();
                 }
             }
         }
+    }
+
+    /**
+     * Decode array LatLNG points from API reponse field polyline
+     * Algorithm description: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+     * @param encoded
+     * @return
+     */
+    private ArrayList<LatLng> decodePoly(String encoded) {
+        ArrayList<LatLng> poly = new ArrayList<LatLng>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            LatLng position = new LatLng((double) lat / 1E5, (double) lng / 1E5);
+            poly.add(position);
+        }
+        return poly;
     }
 }
