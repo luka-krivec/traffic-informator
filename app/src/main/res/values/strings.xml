@@ -1,10 +1,21 @@
 <resources>
     <string name="app_name">Traffic Informator</string>
+
     <string name="title_activity_main">Promet Slovenija</string>
-    <string name="search_events">Poišči dogodke</string>
-    <string name="from">Od</string>
-    <string name="to">Do</string>
+    <string name="title_activity_events">Prometni dogodki</string>
+
     <string name="warning_input_from_and_to">Vnesti morate lokaciji od in do</string>
     <string name="warning_check_input_data">Preverite vhodne podatke</string>
     <string name="error_retreiving_data">Napaka pri pridobivanju podatkov</string>
+
+    <string name="search_events">Poišči dogodke</string>
+    <string name="from">Od</string>
+    <string name="to">Do</string>
+    <string name="all_traffic_events">Vsi dogodki</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_events_description">Opis dogodkov</string>
+    <string name="title_activity_event_details">EventDetailsActivity</string>
+
+    <string name="hello_world">Hello world!</string>
 </resources>
