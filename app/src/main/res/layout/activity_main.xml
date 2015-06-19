@@ -5,41 +5,55 @@
     tools:context=".MainActivity" >
 
 
-    <LinearLayout
-        android:id="@+id/layoutLocations"
+    <TableLayout
+        android:id="@+id/layoutNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:weightSum="2">
 
-        <EditText
-            android:id="@+id/editFromLocation"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:hint="@string/from"/>
+        <TableRow>
+            <EditText
+                android:id="@+id/editFromLocation"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="@string/from"/>
 
-        <EditText
-            android:id="@+id/editToLocation"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:hint="@string/to"/>
+            <EditText
+                android:id="@+id/editToLocation"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="@string/to"/>
+        </TableRow>
 
-    </LinearLayout>
+        <TableRow>
+            <Button
+                android:id="@+id/btnSearchEvents"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_below="@+id/layoutLocations"
+                android:text="@string/search_events"/>
 
-    <Button
-        android:id="@+id/btnSearchEvents"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/layoutLocations"
-        android:text="@string/search_events"/>
+            <Button
+                android:id="@+id/btnDisplayEvents"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_below="@+id/layoutNavigation"
+                android:text="@string/all_traffic_events"/>
+        </TableRow>
+
+
+    </TableLayout>
 
     <fragment
         android:id="@+id/map"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_below="@id/btnSearchEvents"
+        android:layout_below="@id/layoutNavigation"
         android:scrollbars="vertical"
         class="com.google.android.gms.maps.SupportMapFragment"/>
 

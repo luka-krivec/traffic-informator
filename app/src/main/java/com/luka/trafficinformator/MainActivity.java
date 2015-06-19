@@ -1,20 +1,26 @@
 package com.luka.trafficinformator;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONArray;
@@ -26,14 +32,20 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import asynctasks.ApiCall;
 import asynctasks.DirectionsAPI;
+import asynctasks.GetImageBitmap;
+import asynctasks.TrafficEventsAPI;
+import utils.IOUtils;
 
 public class MainActivity extends FragmentActivity implements View.OnClickListener {
 
-    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
+    private GoogleMap mMap;
     private EditText editFromLocation;
     private EditText editToLocation;
     private Button btnSearchEvents;
+    private Button btnDisplayEvents;
+    private ArrayList<Event> trafficEvents;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +56,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         editToLocation = (EditText) findViewById(R.id.editToLocation);
         btnSearchEvents = (Button) findViewById(R.id.btnSearchEvents);
         btnSearchEvents.setOnClickListener(this);
+        trafficEvents = getTrafficEvents();
+        btnDisplayEvents = (Button) findViewById(R.id.btnDisplayEvents);
+        btnDisplayEvents.setOnClickListener(this);
 
         setUpMapIfNeeded();
     }
@@ -89,6 +104,22 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
      */
     private void setUpMap() {
         moveCamera(new LatLng(46.059231, 14.826602), 7f);
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+
+            @Override
+            public View getInfoWindow(Marker arg0) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                View v = getLayoutInflater().inflate(R.layout.marker, null);
+                TextView info = (TextView) v.findViewById(R.id.info);
+                info.setText(marker.getTitle());
+                return v;
+            }
+        });
+        addTrafficEvents();
     }
 
     private void moveCamera(LatLng point, float zoom) {
@@ -100,23 +131,53 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(startCameraPosition));
     }
 
-    @Override
-    public void onClick(View v) {
-        if(v.getId() == R.id.btnSearchEvents) {
-            String from = editFromLocation.getText().toString();
-            String to = editToLocation.getText().toString();
-            String warning = getResources().getString(R.string.warning_check_input_data);
-            String error = getResources().getString(R.string.error_retreiving_data);
+    private ArrayList<Event> getTrafficEvents() {
+        ArrayList<Event> events = new ArrayList<>();
+        String response = TrafficEventsAPI.getTraffic(this);
 
-            PolylineOptions optimalRoute = new PolylineOptions();
+        if(ApiCall.isCallSuccessfull(response)) {
+            try {
+                JSONObject json = new JSONObject(response);
+                JSONArray eventsArray = json.getJSONObject("dogodki").getJSONArray("dogodek");
+                for(int i = 0; i < eventsArray.length(); i++) {
+                    JSONObject event = eventsArray.getJSONObject(i);
+                    events.add(new Event(event.getString("icon"), event.getString("cesta"),
+                            event.getString("vzrok"),event.getString("opis"),
+                            event.getDouble("y_wgs"), event.getDouble("x_wgs")));
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Toast.makeText(this, getResources().getString(R.string.error_retreiving_data), Toast.LENGTH_LONG).show();
+            Log.d("TrafficEvents API error", response);
+        }
+        return events;
+    }
 
-            if(from.length() == 0 || to.length() == 0) {
-                Toast.makeText(this, R.string.warning_input_from_and_to, Toast.LENGTH_SHORT).show();
-            } else {
-                try {
-                    String apiResponese = new DirectionsAPI(this).execute(from, to).get();
-                    Log.d("DirectionsAPI", apiResponese);
+    private void addTrafficEvents() {
+        for(Event event : trafficEvents) {
+            Bitmap icon = IOUtils.getImageBitmap(event.getIconUrl());
+            mMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(event.getLat(), event.getLng()))
+                    .title(event.getDescription())
+                    .icon(BitmapDescriptorFactory.fromBitmap(icon)));
+        }
+    }
 
+    private void drawDirections(String from, String to) {
+        String warning = getResources().getString(R.string.warning_check_input_data);
+        String error = getResources().getString(R.string.error_retreiving_data);
+
+        PolylineOptions optimalRoute = new PolylineOptions();
+
+        if(from.length() == 0 || to.length() == 0) {
+            Toast.makeText(this, R.string.warning_input_from_and_to, Toast.LENGTH_SHORT).show();
+        } else {
+            try {
+                String apiResponese = DirectionsAPI.getDirections(from, to, this);
+
+                if(ApiCall.isCallSuccessfull(apiResponese)) {
                     JSONObject jsonDirections = new JSONObject(apiResponese);
                     String status = jsonDirections.getString("status");
                     Log.d("DirectionsAPI status: ", status);
@@ -139,11 +200,28 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                     } else {
                         Toast.makeText(this, error, Toast.LENGTH_LONG).show();
                     }
-                } catch (InterruptedException  | ExecutionException | JSONException e) {
-                    Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
-                    Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, getResources().getString(R.string.error_retreiving_data), Toast.LENGTH_LONG).show();
+                    Log.d("Directions API error", apiResponese);
                 }
+            } catch (JSONException e) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
             }
+        }
+    }
+
+
+    @Override
+    public void onClick(View v) {
+        if(v.getId() == R.id.btnSearchEvents) {
+            String from = editFromLocation.getText().toString();
+            String to = editToLocation.getText().toString();
+            drawDirections(from, to);
+        } else if(v.getId()== R.id.btnDisplayEvents) {
+            Intent intentEvents = new Intent(this, EventsActivity.class);
+            intentEvents.putParcelableArrayListExtra("events", trafficEvents);
+            startActivity(intentEvents);
         }
     }
 
