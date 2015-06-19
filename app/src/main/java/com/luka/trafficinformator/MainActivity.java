@@ -2,17 +2,18 @@ package com.luka.trafficinformator;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -28,17 +29,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import asynctasks.ApiCall;
 import asynctasks.DirectionsAPI;
-import asynctasks.GetImageBitmap;
 import asynctasks.TrafficEventsAPI;
 import utils.IOUtils;
 
-public class MainActivity extends FragmentActivity implements View.OnClickListener {
+public class MainActivity extends FragmentActivity implements View.OnClickListener, GoogleApiClient.ConnectionCallbacks {
 
     private GoogleMap mMap;
     private EditText editFromLocation;
@@ -46,6 +45,8 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     private Button btnSearchEvents;
     private Button btnDisplayEvents;
     private ArrayList<Event> trafficEvents;
+    private GoogleApiClient mGoogleApiClient;
+    public static Location mLastLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +61,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         btnDisplayEvents = (Button) findViewById(R.id.btnDisplayEvents);
         btnDisplayEvents.setOnClickListener(this);
 
+        buildGoogleApiClient();
+        mGoogleApiClient.connect();
+
         setUpMapIfNeeded();
     }
 
@@ -67,6 +71,13 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
+    }
+
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addApi(LocationServices.API)
+                .build();
     }
 
     /**
@@ -131,6 +142,10 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(startCameraPosition));
     }
 
+    /**
+     * Parse traffic events from opendata API
+     * @return
+     */
     private ArrayList<Event> getTrafficEvents() {
         ArrayList<Event> events = new ArrayList<>();
         String response = TrafficEventsAPI.getTraffic(this);
@@ -155,6 +170,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         return events;
     }
 
+    /**
+     * Add markers that shows traffic events
+     */
     private void addTrafficEvents() {
         for(Event event : trafficEvents) {
             Bitmap icon = IOUtils.getImageBitmap(event.getIconUrl());
@@ -165,6 +183,11 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         }
     }
 
+    /**
+     * Draw route on map between two locations
+     * @param from Start location
+     * @param to End location
+     */
     private void drawDirections(String from, String to) {
         String warning = getResources().getString(R.string.warning_check_input_data);
         String error = getResources().getString(R.string.error_retreiving_data);
@@ -175,10 +198,10 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             Toast.makeText(this, R.string.warning_input_from_and_to, Toast.LENGTH_SHORT).show();
         } else {
             try {
-                String apiResponese = DirectionsAPI.getDirections(from, to, this);
+                String apiResponse = DirectionsAPI.getDirections(from, to, this);
 
-                if(ApiCall.isCallSuccessfull(apiResponese)) {
-                    JSONObject jsonDirections = new JSONObject(apiResponese);
+                if(ApiCall.isCallSuccessfull(apiResponse)) {
+                    JSONObject jsonDirections = new JSONObject(apiResponse);
                     String status = jsonDirections.getString("status");
                     Log.d("DirectionsAPI status: ", status);
 
@@ -202,7 +225,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                     }
                 } else {
                     Toast.makeText(this, getResources().getString(R.string.error_retreiving_data), Toast.LENGTH_LONG).show();
-                    Log.d("Directions API error", apiResponese);
+                    Log.d("Directions API error", apiResponse);
                 }
             } catch (JSONException e) {
                 Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
@@ -232,7 +255,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
      * @return
      */
     private ArrayList<LatLng> decodePoly(String encoded) {
-        ArrayList<LatLng> poly = new ArrayList<LatLng>();
+        ArrayList<LatLng> poly = new ArrayList<>();
         int index = 0, len = encoded.length();
         int lat = 0, lng = 0;
         while (index < len) {
@@ -258,5 +281,16 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             poly.add(position);
         }
         return poly;
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
+                mGoogleApiClient);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Logger.getLogger("MainActivity").log(Level.SEVERE, "Google Api Client connection suspended.");
     }
 }

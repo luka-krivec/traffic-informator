@@ -1,15 +1,15 @@
 package com.luka.trafficinformator;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.Menu;
-import android.view.MenuItem;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import adapters.EventsAdapter;
+import utils.DistanceComparator;
 
 
 public class EventsActivity extends ActionBarActivity {
@@ -29,6 +29,7 @@ public class EventsActivity extends ActionBarActivity {
         recyclerViewListEvents.setLayoutManager(recyclerViewLinerLayoutManager);
 
         ArrayList<Event> eventsList = getIntent().getParcelableArrayListExtra("events");
+        Collections.sort(eventsList, new DistanceComparator());
         Event[] events = eventsList.toArray(new Event[eventsList.size()]);
         EventsAdapter eventsAdapter = new EventsAdapter(this, R.layout.row_event, events);
         recyclerViewListEvents.setAdapter(eventsAdapter);
