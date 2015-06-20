@@ -1,6 +1,7 @@
 package utils;
 
 
+import android.content.Context;
 import android.graphics.Bitmap;
 
 import java.io.BufferedReader;
@@ -29,10 +30,10 @@ public class IOUtils {
         return total.toString();
     }
 
-    public static Bitmap getImageBitmap(String url) {
+    public static Bitmap getImageBitmap(String url, Context context) {
         android.graphics.Bitmap bitmap = null;
         try {
-            bitmap =  new GetImageBitmap().execute(url).get();
+            bitmap =  new GetImageBitmap(context).execute(url).get();
         } catch (InterruptedException | ExecutionException e) {
             Logger.getLogger("IOUtils getImageBitmap").log(Level.SEVERE, null, e);
         }

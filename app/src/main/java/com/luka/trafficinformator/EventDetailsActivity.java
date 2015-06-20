@@ -31,6 +31,6 @@ public class EventDetailsActivity extends ActionBarActivity {
         textViewRoute.setText(event.getRoute());
         textViewReason.setText(event.getReason());
         textViewDescription.setText(event.getDescription());
-        imageViewIcon.setImageBitmap(IOUtils.getImageBitmap(event.getIconUrl()));
+        imageViewIcon.setImageBitmap(IOUtils.getImageBitmap(event.getIconUrl(), this));
     }
 }

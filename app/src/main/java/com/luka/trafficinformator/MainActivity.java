@@ -23,12 +23,15 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -174,12 +177,30 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
      * Add markers that shows traffic events
      */
     private void addTrafficEvents() {
+        HashMap<String, Bitmap> cacheIcons = new HashMap<>();
+
         for(Event event : trafficEvents) {
-            Bitmap icon = IOUtils.getImageBitmap(event.getIconUrl());
-            mMap.addMarker(new MarkerOptions()
+            String iconUrl = event.getIconUrl();
+            Bitmap icon;
+            boolean notCached = false;
+            if(cacheIcons.containsKey(iconUrl)) {
+                icon = cacheIcons.get(iconUrl);
+            } else {
+                notCached = true;
+                icon = IOUtils.getImageBitmap(event.getIconUrl(), this);
+            }
+            MarkerOptions marker = new MarkerOptions()
                     .position(new LatLng(event.getLat(), event.getLng()))
-                    .title(event.getDescription())
-                    .icon(BitmapDescriptorFactory.fromBitmap(icon)));
+                    .title(event.getDescription());
+
+            if(icon != null) {
+                marker.icon(BitmapDescriptorFactory.fromBitmap(icon));
+                if(notCached) {
+                    cacheIcons.put(iconUrl, icon);
+                }
+
+            }
+            mMap.addMarker(marker);
         }
     }
 

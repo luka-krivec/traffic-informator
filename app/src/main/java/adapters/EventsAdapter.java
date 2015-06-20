@@ -39,7 +39,7 @@ public class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.ViewHolder
         Event event = objects[position];
         holder.textViewRoute.setText(event.getRoute());
         holder.textViewReason.setText(event.getReason());
-        holder.imageViewIcon.setImageBitmap(IOUtils.getImageBitmap(event.getIconUrl()));
+        holder.imageViewIcon.setImageBitmap(IOUtils.getImageBitmap(event.getIconUrl(), context));
         holder.event = event;
     }
 
