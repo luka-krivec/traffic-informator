@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
@@ -48,6 +49,8 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     private Button btnSearchEvents;
     private Button btnDisplayEvents;
     private ArrayList<Event> trafficEvents;
+    private LatLng[] routePoints;
+    private PolylineOptions optimalRoute;
     private GoogleApiClient mGoogleApiClient;
     public static Location mLastLocation;
 
@@ -68,6 +71,22 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         mGoogleApiClient.connect();
 
         setUpMapIfNeeded();
+
+        if(savedInstanceState != null) {
+            if(savedInstanceState.containsKey("optimalRoute")
+                    && savedInstanceState.containsKey("routePoints")) {
+                optimalRoute = savedInstanceState.getParcelable("optimalRoute");
+                routePoints = (LatLng[]) savedInstanceState.getParcelableArray("routePoints");
+                addDirectionOnMap(optimalRoute, routePoints);
+            }
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable("optimalRoute", optimalRoute);
+        outState.putParcelableArray("routePoints", routePoints);
     }
 
     @Override
@@ -112,7 +131,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     }
 
     /**
-     * Zoom to Slovenia
+     * Zoom to Slovenia and add traffic events to map
      * <p/>
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
@@ -204,6 +223,10 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         }
     }
 
+    private void showEventsOnRoute(LatLng[] routePoints) {
+
+    }
+
     /**
      * Draw route on map between two locations
      * @param from Start location
@@ -213,7 +236,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         String warning = getResources().getString(R.string.warning_check_input_data);
         String error = getResources().getString(R.string.error_retreiving_data);
 
-        PolylineOptions optimalRoute = new PolylineOptions();
+        optimalRoute = new PolylineOptions();
 
         if(from.length() == 0 || to.length() == 0) {
             Toast.makeText(this, R.string.warning_input_from_and_to, Toast.LENGTH_SHORT).show();
@@ -235,9 +258,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                             JSONObject route = routes.getJSONObject(0);
                             String polyLine = route.getJSONObject("overview_polyline").getString("points");
                             ArrayList<LatLng> points = decodePoly(polyLine);
+                            routePoints = points.toArray(new LatLng[points.size()]);
                             optimalRoute.addAll(points);
-                            mMap.addPolyline(optimalRoute);
-                            moveCamera(points.get(0), 10f);
+                            addDirectionOnMap(optimalRoute, routePoints);
                         }
                     } else if(status.equals("NOT_FOUND")) {
                         Toast.makeText(this, warning, Toast.LENGTH_LONG).show();
@@ -253,6 +276,13 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    private void addDirectionOnMap(PolylineOptions optimalRoute, LatLng[] points) {
+        mMap.clear();
+        mMap.addPolyline(optimalRoute);
+        moveCamera(points[0], 10f);
+        showEventsOnRoute(points);
     }
 
 
@@ -312,6 +342,6 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
 
     @Override
     public void onConnectionSuspended(int i) {
-        Logger.getLogger("MainActivity").log(Level.SEVERE, "Google Api Client connection suspended.");
+        Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Google Api Client connection suspended.");
     }
 }
