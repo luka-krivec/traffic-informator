@@ -44,6 +44,8 @@ import utils.IOUtils;
 public class MainActivity extends FragmentActivity implements View.OnClickListener, GoogleApiClient.ConnectionCallbacks {
 
     private static final float TOLERANCE = 100.0f;  // Tolerance for searching traffic event on route
+    private static final float MAP_ZOOM = 7f;
+    private static final LatLng CENTER_POINT = new LatLng(46.059231, 14.826602);
 
     private GoogleMap mMap;
     private EditText editFromLocation;
@@ -138,7 +140,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        moveCamera(new LatLng(46.059231, 14.826602), 7f);
+        moveCamera(CENTER_POINT, MAP_ZOOM);
         mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
 
             @Override
@@ -305,6 +307,13 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             String to = editToLocation.getText().toString();
             drawDirections(from, to);
         } else if(v.getId()== R.id.btnDisplayEvents) {
+            if(optimalRoute != null) {
+                mMap.clear();
+                addTrafficEvents(trafficEvents);
+                moveCamera(CENTER_POINT, MAP_ZOOM);
+                optimalRoute = null;
+                routePoints = null;
+            }
             Intent intentEvents = new Intent(this, EventsActivity.class);
             intentEvents.putParcelableArrayListExtra("events", trafficEvents);
             startActivity(intentEvents);
