@@ -1,14 +1,14 @@
 package com.luka.trafficinformator;
 
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import utils.IOUtils;
 
 
-public class EventDetailsActivity extends ActionBarActivity {
+public class EventDetailsActivity extends AppCompatActivity {
 
     private Event event;
     public TextView textViewRoute;

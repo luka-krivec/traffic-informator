@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
@@ -25,13 +24,11 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.PolyUtil;
-import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -292,10 +289,12 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     }
 
     private void addDirectionOnMap(PolylineOptions optimalRoute, LatLng[] points) {
-        mMap.clear();
-        mMap.addPolyline(optimalRoute);
-        moveCamera(points[0], 10f);
-        showEventsOnRoute(points);
+        if(optimalRoute != null && points != null) {
+            mMap.clear();
+            mMap.addPolyline(optimalRoute);
+            moveCamera(points[0], 10f);
+            showEventsOnRoute(points);
+        }
     }
 
 

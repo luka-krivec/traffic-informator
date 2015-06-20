@@ -1,7 +1,7 @@
 package com.luka.trafficinformator;
 
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 
@@ -12,7 +12,7 @@ import adapters.EventsAdapter;
 import utils.DistanceComparator;
 
 
-public class EventsActivity extends ActionBarActivity {
+public class EventsActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewListEvents;
     private RecyclerView.LayoutManager recyclerViewLinerLayoutManager;
