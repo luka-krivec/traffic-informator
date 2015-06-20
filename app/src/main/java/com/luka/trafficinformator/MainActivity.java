@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -269,7 +270,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                         } else {
                             JSONObject route = routes.getJSONObject(0);
                             String polyLine = route.getJSONObject("overview_polyline").getString("points");
-                            ArrayList<LatLng> points = decodePoly(polyLine);
+                            List<LatLng> points = PolyUtil.decode(polyLine);
                             routePoints = points.toArray(new LatLng[points.size()]);
                             optimalRoute.addAll(points);
                             addDirectionOnMap(optimalRoute, routePoints);
@@ -309,41 +310,6 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             intentEvents.putParcelableArrayListExtra("events", trafficEvents);
             startActivity(intentEvents);
         }
-    }
-
-    /**
-     * Decode array LatLNG points from API reponse field polyline
-     * Algorithm description: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
-     * @param encoded
-     * @return
-     */
-    private ArrayList<LatLng> decodePoly(String encoded) {
-        ArrayList<LatLng> poly = new ArrayList<>();
-        int index = 0, len = encoded.length();
-        int lat = 0, lng = 0;
-        while (index < len) {
-            int b, shift = 0, result = 0;
-            do {
-                b = encoded.charAt(index++) - 63;
-                result |= (b & 0x1f) << shift;
-                shift += 5;
-            } while (b >= 0x20);
-            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-            lat += dlat;
-            shift = 0;
-            result = 0;
-            do {
-                b = encoded.charAt(index++) - 63;
-                result |= (b & 0x1f) << shift;
-                shift += 5;
-            } while (b >= 0x20);
-            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-            lng += dlng;
-
-            LatLng position = new LatLng((double) lat / 1E5, (double) lng / 1E5);
-            poly.add(position);
-        }
-        return poly;
     }
 
     @Override
