@@ -24,6 +24,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.PolyUtil;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
@@ -32,6 +33,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,6 +44,8 @@ import asynctasks.TrafficEventsAPI;
 import utils.IOUtils;
 
 public class MainActivity extends FragmentActivity implements View.OnClickListener, GoogleApiClient.ConnectionCallbacks {
+
+    private static final float TOLERANCE = 100.0f;  // Tolerance for searching traffic event on route
 
     private GoogleMap mMap;
     private EditText editFromLocation;
@@ -152,7 +156,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                 return v;
             }
         });
-        addTrafficEvents();
+        addTrafficEvents(trafficEvents);
     }
 
     private void moveCamera(LatLng point, float zoom) {
@@ -195,7 +199,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     /**
      * Add markers that shows traffic events
      */
-    private void addTrafficEvents() {
+    private void addTrafficEvents(ArrayList<Event> trafficEvents) {
         HashMap<String, Bitmap> cacheIcons = new HashMap<>();
 
         for(Event event : trafficEvents) {
@@ -224,7 +228,15 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     }
 
     private void showEventsOnRoute(LatLng[] routePoints) {
+        ArrayList<Event> trafficEventsOnRoute = new ArrayList<>();
 
+        for(Event event : trafficEvents) {
+            LatLng eventPoint = new LatLng(event.getLat(), event.getLng());
+            if(PolyUtil.isLocationOnPath(eventPoint, Arrays.asList(routePoints), false, TOLERANCE)) {
+                trafficEventsOnRoute.add(event);
+            }
+        }
+        addTrafficEvents(trafficEventsOnRoute);
     }
 
     /**
